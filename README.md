@@ -19,12 +19,15 @@ This solution can be easily integrated with your existing PHP code that uses PHP
 	);
 	```
 
-3. Edit the file `database.class.php` and change the following variables to your existing database. 
+3. Edit the file `example.php` and change the following variables to your existing database. 
 	```php
-	define("DB_HOST", "localhost");
-	define("DB_USER", "yourusername");
-	define("DB_PASS", "1234567890");
-	define("DB_NAME", "yourdbname");
+	class MySession extends Session {
+	        var $database = 'websessdb';
+        	var $username = 'sessuser';
+	        var $password = '$0m3 $3cr3t';
+        	var $hostname = '10.98.76.54';
+		var $debug = true;
+	}
 	```
 
 4. Make sure PHP has sufficient privileges and make sure that your MySQL server accepts connections if separate from your localhost.
@@ -34,9 +37,8 @@ An example script called `example.php` has been provided for your convenience. T
 
 1. Declarations (include these on the top of your PHP): 
 	```php
-	include("database.class.php");	//Include MySQL database class
 	include("mysql.sessions.php");	//Include PHP MySQL sessions
-	$session = new Session();	//Start a new PHP MySQL session
+	$session = new MySession();	//Start a new PHP MySQL session
 	```
 	
 2. Storing in a session variable: 
