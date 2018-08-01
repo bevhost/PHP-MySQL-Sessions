@@ -24,13 +24,25 @@
 
 	*/
 
-
 class Session {
+	var $database = 'session';
+	var $username = 'session';
+	var $password = '';
+	var $hostname = 'localhost';
+	var $options = [];
+	var $debug = false;
+
 	private $db;
 
 	public function __construct(){
+
 		// Instantiate new Database object
-		$this->db = new Database;
+		try {
+			$this->db = new PDO ("mysql:host=".$this->hostname.";dbname=".$this->database,$this->username,$this->password,$this->options);
+		}
+		catch(PDOException $e){
+			if ($this->debug) printf("Error '%s' opening mysql database:%s on %s",$e->getMessage(),$this->database,$this->hostname);
+		}
 
 		// Set handler to overide SESSION
 		session_set_save_handler(
@@ -46,86 +58,44 @@ class Session {
 		session_start();
 	}
 	public function _open(){
-		// If successful
-		if($this->db){
-		// Return True
-		return true;
-		}
-		// Return False
-		return false;
+		return isset($this->db);
 	}
 	public function _close(){
-		// Close the database connection
-		// If successful
-		if($this->db->close()){
-		// Return True
+		$this->db = null;
 		return true;
-		}
-		// Return False
-		return false;
 	}
 	public function _read($id){
-		// Set query
-		$this->db->query('SELECT data FROM sessions WHERE id = :id');
-		// Bind the Id
-		$this->db->bind(':id', $id);
-		// Attempt execution
-		// If successful
-		if($this->db->execute()){
-		// Save returned row
-		$row = $this->db->single();
-		// Return the data
-		return $row['data'];
-		}else{
-		// Return an empty string
-		return '';
+		$st = $this->db->prepare('SELECT data FROM sessions WHERE id = ?');
+		if ($st->execute([$id])){
+			if ($row = $st->fetchColumn()) {
+				return $row; 
+			} else return '';
+		} else {
+			if ($this->debug) echo "Session Execute Read Error";
+			return '';
 		}
 	}
 	public function _write($id, $data){
-		// Create time stamp
 		$access = time();
-		// Set query  
-		$this->db->query('REPLACE INTO sessions VALUES (:id, :access, :data)');
-		// Bind data
-		$this->db->bind(':id', $id);
-		$this->db->bind(':access', $access);  
-		$this->db->bind(':data', $data);
-		// Attempt Execution
-		// If successful
-		if($this->db->execute()){
-		// Return True
-		return true;
-		}
-		// Return False
+		if ($st = $this->db->prepare('REPLACE INTO sessions (id, access, data) VALUES (?,?,?)')) {
+			if($st->execute([$id,$access,$data])){
+				return true;
+			}
+		} 
+		if ($this->debug) echo "Session Write Error";
 		return false;
 	}
 	public function _destroy($id){
-		// Set query
-		$this->db->query('DELETE FROM sessions WHERE id = :id');
-		// Bind data
-		$this->db->bind(':id', $id);
-		// Attempt execution
-		// If successful
-		if($this->db->execute()){
-		// Return True
-		return true;
-		}
-		// Return False
+		$st = $this->db->prepare('DELETE FROM sessions WHERE id = ?');
+		if ($st->execute([$id])) return true;
+		if ($this->debug) echo "Session Destroy Failed";
 		return false;
 	} 
 	public function _gc($max){
-		// Calculate what is to be deemed old
 		$old = time() - $max;
-		// Set query
-		$this->db->query('DELETE FROM sessions WHERE access < :old');
-		// Bind data
-		$this->db->bind(':old', $old);
-		// Attempt execution
-		if($this->db->execute()){
-		// Return True
-		return true;
-		}
-		// Return False
+		$st = $this->db->query('DELETE FROM sessions WHERE access < ?');
+		if ($st->execute([$old])) return true; 
+		if ($this->debug) echo "Session Garbage Collection Failed";
 		return false;
 	}
 }
